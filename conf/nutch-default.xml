@@ -1141,6 +1141,13 @@
 </property>
 
 <property>
+  <name>elastic.discovery_hosts</name>
+  <value>127.0.0.1</value>
+  <description>Comma separated list of ip addresses or hosts to do discovery on. Associated ElasticSearch property: discovery.zen.ping.unicast.hosts
+  </description>
+</property>
+
+<property>
   <name>elastic.max.bulk.docs</name>
   <value>500</value>
   <description>

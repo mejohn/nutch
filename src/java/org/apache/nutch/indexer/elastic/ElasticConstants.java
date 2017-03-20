@@ -23,4 +23,5 @@ public interface ElasticConstants {
   public static final String INDEX = ELASTIC_PREFIX + "index";
   public static final String MAX_BULK_DOCS = ELASTIC_PREFIX + "max.bulk.docs";
   public static final String MAX_BULK_LENGTH = ELASTIC_PREFIX + "max.bulk.size";
+  public static final String DISCOVERY_HOSTS = ELASTIC_PREFIX + "discovery_hosts";
 }

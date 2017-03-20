@@ -31,6 +31,7 @@ import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.index.IndexRequestBuilder;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.node.Node;
 import org.slf4j.Logger;
@@ -145,8 +146,16 @@ public class ElasticWriter implements NutchIndexWriter {
   @Override
   public void open(TaskAttemptContext job) throws IOException {
     String clusterName = job.getConfiguration().get(ElasticConstants.CLUSTER);
+    String discHosts = job.getConfiguration().get(ElasticConstants.DISCOVERY_HOSTS);
     if (clusterName != null) {
-      node = nodeBuilder().clusterName(clusterName).client(true).node();
+      node = nodeBuilder()
+                .settings(Settings.builder()
+                    .put("path.home", "var/lib/elasticsearch")
+                    .put("cluster.name", clusterName)
+                    .put("node.name", "nutch-client")
+                    .put("discovery.zen.ping.multicast.enabled", false)
+                    .put("discovery.zen.ping.unicast.hosts", discHosts)
+                ).client(true).node();
     } else {
       node = nodeBuilder().client(true).node();
     }
