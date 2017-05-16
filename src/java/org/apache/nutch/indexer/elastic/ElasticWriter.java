@@ -21,6 +21,9 @@ import static org.elasticsearch.node.NodeBuilder.nodeBuilder;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Arrays;
+import java.util.List;
 
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.nutch.indexer.NutchDocument;
@@ -58,15 +61,30 @@ public class ElasticWriter implements NutchIndexWriter {
 
   @Override
   public void write(NutchDocument doc) throws IOException {
-    String id = TableUtil.reverseUrl(doc.getFieldValue("url"));
+    String id = doc.getFieldValue("url");
     String type = doc.getDocumentMeta().get("type");
     if (type == null) type = "doc";
     IndexRequestBuilder request = client.prepareIndex(defaultIndex, type, id);
     
     Map<String, Object> source = new HashMap<String, Object>();
     
+    for(final Entry<String, List<String>> e : doc) { 
+        for(final String val : e.getValue()) {
+            int len = 0;
+            Object val2 = val;
+            if(e.getKey().equals("content") || e.getKey().equals("title")) {
+                val2 = val; //maybe strip here
+                len = val.toString().length();
+            }
+            source.put(e.getKey(), val2);
+            bulkLength += len + e.getKey().length();
+        }
+    }
+
+/*
     // Loop through all fields of this doc
     for (String fieldName : doc.getFieldNames()) {
+      
       if (doc.getFieldValues(fieldName).size() > 1) {
         source.put(fieldName, doc.getFieldValues(fieldName));
         // Loop through the values to keep track of the size of this document
@@ -78,6 +96,8 @@ public class ElasticWriter implements NutchIndexWriter {
         bulkLength += doc.getFieldValue(fieldName).length();
       }
     }
+  */
+
     request.setSource(source);
     
     // Add this indexing request to a bulk request
@@ -102,7 +122,7 @@ public class ElasticWriter implements NutchIndexWriter {
       BulkResponse actionGet = execute.actionGet();
       if (actionGet.hasFailures()) {
         for (BulkItemResponse item : actionGet) {
-          if (item.failed()) {
+          if (item.isFailed()) {
             throw new RuntimeException("First failure in bulk: "
                 + item.getFailureMessage());
           }
@@ -148,14 +168,14 @@ public class ElasticWriter implements NutchIndexWriter {
     String clusterName = job.getConfiguration().get(ElasticConstants.CLUSTER);
     String discHosts = job.getConfiguration().get(ElasticConstants.DISCOVERY_HOSTS);
     if (clusterName != null) {
-      node = nodeBuilder()
-                .settings(Settings.builder()
-                    .put("path.home", "var/lib/elasticsearch")
-                    .put("cluster.name", clusterName)
-                    .put("node.name", "nutch-client")
-                    .put("discovery.zen.ping.multicast.enabled", false)
-                    .put("discovery.zen.ping.unicast.hosts", discHosts)
-                ).client(true).node();
+      node = nodeBuilder().nodeBuilder()
+		.settings(Settings.builder()
+			.put("path.home", "/var/lib/elasticsearch")
+			.put("cluster.name", "alchemy")
+                        .put("node.name", "node-2")
+                        .put("discovery.zen.ping.multicast.enabled", false)
+			.putArray("discovery.zen.ping.unicast.hosts", discHosts)
+		).client(true).node();
     } else {
       node = nodeBuilder().client(true).node();
     }
